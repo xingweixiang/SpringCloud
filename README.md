@@ -13,19 +13,18 @@
 	* [二、SpringBoot](#二SpringBoot)
 		* [1、三层应用例子](#1三层应用例子)		
 	* [三、SpringCloud](#三SpringCloud)
-	    * [1、ApacheKylin](#1ApacheKylin)	
 	* [四、服务治理Eureka与负载均衡Ribbon](#四服务治理Eureka与负载均衡Ribbon)
-	    * [1、展现层](#1展现层)	
 	* [五、容错保护Hystrix](#五容错保护Hystrix)
-	    * [1、展现层](#1展现层)	
 	* [六、API服务网关Zuul](#六API服务网关Zuul)
-	    * [1、展现层](#1展现层)	
 	* [七、统一配置中心Config](#七统一配置中心Config)
-	    * [1、展现层](#1展现层)	
+	* [八、分布式服务跟踪Sleuth](#八分布式服务跟踪Sleuth)
+	* [九、消息驱动Stream](#九消息驱动Stream)
+	* [十、应用安全Security](#十应用安全Security)
+	* [十一、容器Docker与Jenkins](#十一容器Docker与Jenkins)
 	
 ### 一、架构设计
 ### 1、拆分原则
-- 。
+- 
 ### 2、自治原则
 - 
 ### 3、交互原则
