@@ -15,9 +15,14 @@
 	* [三、SpringCloud](#三SpringCloud)
 	    * [1、Feign熔断降级](#1Feign熔断降级)		
 	* [四、服务治理Eureka与负载均衡Ribbon](#四服务治理Eureka与负载均衡Ribbon)
-	    * [1、搭建服务治理注册中心](#1搭建服务治理注册中心)		
+	    * [1、搭建治理服务器-Eureka服务器](#1搭建治理服务器-Eureka服务器)	
+	    * [2、搭建服务提供者-注册服务](#2搭建服务提供者-注册服务)
+	    * [3、搭建服务消费者-获取服务](#2搭建服务消费者-获取服务)
+	    * [4、客户端负载均衡Ribbon](#4客户端负载均衡Ribbon)	
+	    * [5、Eureka高可用集群](#5Eureka高可用集群)			
 	* [五、容错保护Hystrix](#五容错保护Hystrix)
 	* [六、API服务网关Zuul](#六API服务网关Zuul)
+	    * [1、搭建Zuul网关](#1搭建Zuul网关)	
 	* [七、统一配置中心Config](#七统一配置中心Config)
 	* [八、分布式服务跟踪Sleuth](#八分布式服务跟踪Sleuth)
 	* [九、消息驱动Stream](#九消息驱动Stream)
@@ -162,7 +167,7 @@ public interface HelloService {
 - 测试验证，启动服务治理服务器，启动Hello服务消费者，不启动Hello服务提供者。访问 http://localhost:8080/hello/你好 显示如下图效果，则证明服务降级成功：
 ![图片](/images/3.jpg)
 ### 四、服务治理Eureka与负载均衡Ribbon
-### 1、搭建服务治理注册中心
+### 1、1搭建治理服务器-Eureka服务器
 - maven添加Eureka服务器端依赖
 ```
 <dependencies>
@@ -190,4 +195,117 @@ eureka.client.register-with-eureka=false
 eureka.client.fetch-registry=false
 ```
 - 启动应用，并访问http://localhost:8026/即可看到Eureka信息面板，如下：
-![图片](/images/4.jpg)
+![图片](/images/4.jpg)<br>
+在上图"Instances currently registered with Eureka"信息中，没有一个实例，说明目前还没有服务注册。
+### 2、搭建服务提供者-注册服务
+- maven添加Eureka客户端依赖（跟上面的服务端依赖不一样）
+```
+<dependencies>
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-starter-eureka</artifactId>
+    </dependency>
+</dependencies>
+```
+- 在主类上添加@EnableEurekaClient注解以实现Eureka中的DiscoveryClient实现
+```
+@EnableDiscoveryClient
+@SpringBootApplication
+public class Application {
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
+}
+```
+在application.properties中添加配置与服务相关的一些基本信息，如服务名、注册中心地址(即上一节中设置的注册中心地址http://localhost:8260/eureka)
+```
+#  设置服务名
+spring.application.name=userservice
+#  设置注册中心地址
+eureka.client.service-url.defaultZone=http://localhost:8260/eureka
+```
+- 启动注册中心服务，可以看到如下的信息，说明此服务已经注册在了注册中心
+![图片](/images/4-2.jpg)<br>
+访问上面的服务治理注册中心http://localhost:8260/可以在Instances currently registered with Eureka中看到已经有一个服务注册了进来，并且名称为USERSERVICE的服务
+![图片](/images/4-3.jpg)
+### 3、搭建服务消费者-获取服务
+- 跟上面的注册服务搭建步骤差不多，源码请参考demo/chapter04 -- eureka/product-service，启动成功之后，
+访问服务治理注册中心http://localhost:8260/可以在Instances currently registered with Eureka中看到有服务注册进来，名称为PRODUCTSERVICE
+![图片](/images/4-4.jpg)
+### 4、客户端负载均衡Ribbon
+- maven添加ribbon依赖
+```
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-ribbon</artifactId>
+</dependency>
+```
+- 在启动类中向Spring容器中注入一个带有@LoadBalanced注解的RestTemplate Bean
+```
+@EnableDiscoveryClient
+@EnableFeignClients
+@SpringBootApplication
+public class Application {
+    @Bean(value = "restTemplate")
+    @LoadBalanced
+    RestTemplate restTemplate() {
+        return new RestTemplate();
+    }
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
+}
+```
+- 在调用那些需要做负载均衡的服务时，使用上面注入的RestTemplate Bean进行调用即可
+```
+UserDto userDto = this.restTemplate.getForEntity("http://USERSERVICE/users/{id}", UserDto.class, userId).getBody();
+```
+- 用三个端口分别启动服务提供者，访问服务消费者，刷新几次会看到，调用的端口不一样
+### 5、Eureka高可用集群
+- 略
+### 五、容错保护Hystrix
+通过hystrix可以解决雪崩效应问题，它提供了资源隔离、降级机制、融断、缓存等功能。
+- 资源隔离：包括线程池隔离和信号量隔离，限制调用分布式服务的资源使用，某一个调用的服务出现问题不会影响其他服务调用。
+- 降级机制：超时降级、资源不足时(线程或信号量)降级，降级后可以配合降级接口返回托底数据。
+- 融断：当失败率达到阀值自动触发降级(如因网络故障/超时造成的失败率高)，熔断器触发的快速失败会进行快速恢复。
+- 缓存：返回结果缓存，后续请求可以直接走缓存。
+- 请求合并：可以实现将一段时间内的请求（一般是对同一个接口的请求）合并，然后只对服务提供者发送一次请求。
+- 如上面讲的Feign熔断降级
+### 六、API服务网关Zuul
+- Zuul提供了动态路由、监控、弹性负载和安全功能。Zuul底层利用各种filter可实现如下功能：
+认证和安全 识别每个需要认证的资源，拒绝不符合要求的请求。<br>
+性能监测 在服务边界追踪并统计数据，提供精确的生产视图。<br>
+动态路由 根据需要将请求动态路由到后端集群。<br>
+压力测试 逐渐增加对集群的流量以了解其性能。<br>
+负载卸载 预先为每种类型的请求分配容量，当请求超过容量时自动丢弃。<br>
+静态资源处理 直接在边界返回某些响应。<br>
+### 1、搭建Zuul网关
+- maven中引入eureka客户端
+```
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-eureka</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-starter-zuul</artifactId>
+</dependency>
+```
+- 在启动类中，增加@EnableZuulProxy注解
+```
+@EnableZuulProxy
+@SpringBootApplication
+public class Application {
+    public static void main(String[] args) {
+        SpringApplication.run(Application.class, args);
+    }
+}
+```
+- 在application.properties中添加配置如服务名、注册中心地址等
+```
+#  设置注册中心地址
+eureka.client.service-url.defaultZone=http://localhost:8260/eureka
+```
+- 按顺序先启动治理服务器、服务提供者、服务消费者、网关服务器<br>
+访问服务治理注册中心http://localhost:8260/可以在Instances currently registered with Eureka中看到如下图
+![图片](/images/4-5.jpg)
