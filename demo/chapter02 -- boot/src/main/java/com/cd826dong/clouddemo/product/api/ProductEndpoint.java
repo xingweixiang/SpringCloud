@@ -38,8 +38,7 @@ import java.util.stream.Collectors;
 
 /**
  * 产品管理的Endpoint
- *
- * @author CD826
+ * @author xwx
  * @since 1.0.0
  */
 @RestController

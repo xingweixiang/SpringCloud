@@ -17,13 +17,11 @@ import org.springframework.stereotype.Component;
 
 /**
  * Hello服务降级实现
- *
- * @author CD826(CD826Dong@gmail.com)
  * @since 1.0.0
  */
 @Component
 public class HelloServiceFallback implements HelloService {
     public String hello(String name) {
-        return "Hello, " + name + ", I'm fallback!";
+        return "Hello, " + name + ", 熔断降级成功!";
     }
 }

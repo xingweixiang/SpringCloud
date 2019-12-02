@@ -1,8 +1,5 @@
 /**
  *学习
- * All rights reserved.
- *
- * Created on 2016-10-10
  */
 package com.cd826dong.clouddemo.config;
 
@@ -23,32 +20,38 @@ import java.util.List;
 
 /**
  * Swagger配置信息
- *
- * @author CD826
+ * @author xwx
  * @since 1.0.0
  */
 @Configuration
 @EnableSwagger2
 public class Swagger2Config {
+     /**
+     * 通过 createRestApi函数来构建一个DocketBean
+     * 函数名,可以随意命名,喜欢什么命名就什么命名
+     */
     @Bean
     public Docket createRestApi() {
         List<ApiListingReference> apiListingReferenceList = new ArrayList<>();
         apiListingReferenceList.add(new ApiListingReference("", "", 0));
         return new Docket(DocumentationType.SWAGGER_2)
-                .apiInfo(apiInfo())
+                .apiInfo(apiInfo())//调用apiInfo方法,创建一个ApiInfo实例,里面是展示在文档页面信息内容
                 .select()
+                //控制暴露出去的路径下的实例
+                //如果某个接口不想暴露,可以使用以下注解
+                //@ApiIgnore 这样,该接口就不会暴露在 swagger2 的页面下
                 .apis(RequestHandlerSelectors.basePackage("com.cd826dong"))
                 .paths(PathSelectors.any())
                 .build();
     }
-
     private ApiInfo apiInfo() {
         return new ApiInfoBuilder()
-                .title("SpringCloud Demo Projects RESTful APIs")
-                .description("http://api.cd826dong.com/")
-                .termsOfServiceUrl("https://cd826dong.com/")
-                .contact("CD826")
+                .title("Spring Boot Swagger2 构建RESTful API")//页面标题
+                .description("http://api.xwx.com/")
+                .termsOfServiceUrl("https://xwx.com/")
+                .contact("xwx")
                 .version("1.0.0")
+                .description("API 描述")//描述
                 .build();
     }
 }

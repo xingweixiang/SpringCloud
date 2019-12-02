@@ -21,8 +21,6 @@ import org.springframework.web.bind.annotation.RequestMethod;
 
 /**
  * 远程Hello服务客户端
- *
- * @author CD826(CD826Dong@gmail.com)
  * @since 1.0.0
  */
 @FeignClient(value = "HP-SERVICE", fallback = HelloServiceFallback.class)
