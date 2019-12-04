@@ -27,19 +27,23 @@
 	* [八、分布式服务跟踪Sleuth](#八分布式服务跟踪Sleuth)
 	* [九、消息驱动Stream](#九消息驱动Stream)
 	* [十、应用安全Security](#十应用安全Security)
+	    * [1、OAuth认证](#1OAuth认证)	
+	    * [2、JWT认证](#2JWT认证)	
 	* [十一、容器Docker与Jenkins](#十一容器Docker与Jenkins)
 	
 ### 一、架构设计
 ### 1、拆分原则
-- 
+- 单一职责原则，一个微服务仅拥有一个业务
+- 共同封闭原则，同一性质的类封装到同一个包中
 ### 2、自治原则
-- 
+- 你构建，你运行。
 ### 3、交互原则
-- 
+- 使用REST协议，JSON数据格式，HTTP标准状态码等
 ### 4、架构迁移
-- 
+- 围绕传统应用开发出新的微服务应用，并逐渐替代传统应用中的部分业务功能
 ### 5、微服务优缺点
-- 
+- 优点：松耦合，抽象，独立，应对用户需求多样性，有更高可用性和弹性
+- 缺点：处理分布式较棘手，学习难度加大
 ### 二、SpringBoot
 ### 1、SpringBoot整合swagger2
 - swagger是一个方便后端编写接口文档的开源项目，并提供界面化测试。
@@ -309,3 +313,73 @@ eureka.client.service-url.defaultZone=http://localhost:8260/eureka
 - 按顺序先启动治理服务器、服务提供者、服务消费者、网关服务器<br>
 访问服务治理注册中心http://localhost:8260/可以在Instances currently registered with Eureka中看到如下图
 ![图片](/images/4-5.jpg)
+### 十、应用安全Security
+- 常用安全认证有SSO，分布式会话Session，客户端令牌Token，客户端令牌与API网关结合
+### 1、OAuth认证
+- maven中引入
+```
+<dependency>
+    <groupId>org.springframework.cloud</groupId>
+    <artifactId>spring-cloud-security</artifactId>
+</dependency>
+<dependency>
+    <groupId>org.springframework.security.oauth</groupId>
+    <artifactId>spring-security-oauth2</artifactId>
+</dependency>
+```
+- 在启动类中，增加@EnableAuthorizationServer注解
+```
+@SpringBootApplication
+@RestController
+@EnableResourceServer
+@EnableAuthorizationServer
+public class Application {
+    @RequestMapping(value = { "/user" }, produces = "application/json")
+    public Map<String, Object> user(OAuth2Authentication user) {
+        Map<String, Object> userInfo = new HashMap<>();
+        userInfo.put("user", user.getUserAuthentication().getPrincipal());
+        userInfo.put("authorities", AuthorityUtils.authorityListToSet( user.getUserAuthentication().getAuthorities()));
+        return userInfo;
+    }
+    public static void main(String[] args) {
+        new SpringApplicationBuilder(Application.class).web(true).run(args);
+    }
+}
+```
+- 扩展OAuthWebSecurityConfigurer并实现configure
+```
+@Configuration
+@Order(org.springframework.boot.autoconfigure.security.SecurityProperties.ACCESS_OVERRIDE_ORDER)
+public class OAuthWebSecurityConfigurer extends WebSecurityConfigurerAdapter {
+    @Override
+    @Bean
+    public AuthenticationManager authenticationManagerBean() throws Exception{
+        return super.authenticationManagerBean();
+    }
+    @Override
+    @Bean
+    public UserDetailsService userDetailsServiceBean() throws Exception {
+        return super.userDetailsServiceBean();
+    }
+    @Override
+    protected void configure(AuthenticationManagerBuilder auth) throws Exception {
+        auth.inMemoryAuthentication()
+                .withUser("zhangsan")
+                .password("password")
+                .roles("USER")
+                .and()
+                .withUser("superAdmin")
+                .password("superPwd")
+                .roles("USER", "ADMIN");
+    }
+}
+```
+### 2、JWT认证
+- maven中引入
+```
+<dependency>
+    <groupId>org.springframework.security</groupId>
+    <artifactId>spring-security-jwt</artifactId>
+</dependency>
+```
+- 定义令牌转换器，具体实现参考源码
