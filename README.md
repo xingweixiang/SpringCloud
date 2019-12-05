@@ -266,7 +266,36 @@ UserDto userDto = this.restTemplate.getForEntity("http://USERSERVICE/users/{id}"
 ```
 - 用三个端口分别启动服务提供者，访问服务消费者，刷新几次会看到，调用的端口不一样
 ### 5、Eureka高可用集群
-- 略
+- maven添加Eureka服务器端依赖
+```
+<dependencies>
+    <dependency>
+        <groupId>org.springframework.cloud</groupId>
+        <artifactId>spring-cloud-starter-eureka-server</artifactId>
+    </dependency>
+</dependencies>
+```
+- 在Springboot项目中的main入口，添加@EnableEurekaServer注解，来开启服务注册中心
+```
+@EnableEurekaServer
+@SpringBootApplication
+public class Application {
+    public static void main(String[] args) {
+        new SpringApplicationBuilder(Application.class).web(true).run(args);
+    }
+}
+```
+- 在项目中创建3个配置文件application-node1.properties，application-node2.properties和application-node3.properties分别作为node1，node2和node3节点的配置文件。配置服务的端口和hostname，指定其他两个eureka server，地址中的hostname应与配置的hostname相对应。
+如application-node1.properties
+```
+server.port=8761
+eureka.instance.hostname=node1
+eureka.client.service-url.defaultZone=http://node2:8762/eureka/,http://node3:8763/eureka
+```
+- 启动应用，并访问http://localhost:8761/即可看到Eureka信息面板，如下：
+![图片](/images/4-7.jpg)<br>
+在node1的页面上可以看到，General Info的available-replicas有node2和node3节点，说明3个节点的eureka server相互注册成功。<br>
+如果available-replicas是空的，而unavailable-replicas有其他两个节点，说明配置有问题，集群搭建失败。
 ### 五、容错保护Hystrix
 通过hystrix可以解决雪崩效应问题，它提供了资源隔离、降级机制、融断、缓存等功能。
 - 资源隔离：包括线程池隔离和信号量隔离，限制调用分布式服务的资源使用，某一个调用的服务出现问题不会影响其他服务调用。
